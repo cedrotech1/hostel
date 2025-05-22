@@ -30,6 +30,7 @@ require_once 'room_list.php';
 let refreshInterval;
 let currentHostelId = null;
 let isRefreshing = false;
+let currentPage = 1;
 
 // Handle modal show event
 document.getElementById('roomsModal').addEventListener('show.bs.modal', function(event) {
@@ -38,15 +39,16 @@ document.getElementById('roomsModal').addEventListener('show.bs.modal', function
     const hostelName = button.getAttribute('data-hostel-name');
     
     currentHostelId = hostelId;
+    currentPage = 1;
     document.getElementById('modalHostelName').textContent = hostelName;
     
     // Load initial data
-    loadRooms(hostelId, 1);
+    loadRooms(hostelId, currentPage);
     
     // Start refresh interval - using 0.5 second interval
     refreshInterval = setInterval(() => {
         if (!isRefreshing) {
-            loadRooms(hostelId, 1);
+            loadRooms(hostelId, currentPage);
         }
     }, 1000); // Refresh every 1 second
 });
@@ -55,6 +57,7 @@ function loadRooms(hostelId, page) {
     if (isRefreshing) return;
     
     isRefreshing = true;
+    currentPage = page;
     fetch(`get_rooms.php?hostel_id=${hostelId}&page=${page}`)
         .then(response => response.json())
         .then(data => {
@@ -154,8 +157,10 @@ function updateRoomList(data) {
         document.querySelectorAll('.pagination .page-link').forEach(link => {
             link.addEventListener('click', function(e) {
                 e.preventDefault();
-                const newPage = this.dataset.page;
-                loadRooms(data.hostel_id, newPage);
+                const newPage = parseInt(this.dataset.page);
+                if (newPage !== currentPage) {
+                    loadRooms(currentHostelId, newPage);
+                }
             });
         });
     }
@@ -168,6 +173,7 @@ document.getElementById('roomsModal').addEventListener('hidden.bs.modal', functi
         refreshInterval = null;
     }
     currentHostelId = null;
+    currentPage = 1;
     isRefreshing = false;
 });
 </script>

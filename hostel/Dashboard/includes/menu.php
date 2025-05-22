@@ -129,6 +129,12 @@
                     </li>
                 </ul>
             </li>
+           <!-- normal one menu -->
+           <li class="nav-item">
+                <a class="nav-link collapsed" href="search.php">
+                    <i class="bi bi-person-plus"></i><span>search</span>
+                </a>
+            </li>
         <?php } ?>
 
 

@@ -381,7 +381,7 @@ if (isset($_POST['saveuser'])) {
     $hashed_password = password_hash($password, PASSWORD_BCRYPT);
 
     // Insert the user into the database with hashed password
-    $query = "INSERT INTO users (names, email, role, password, image, active) VALUES ('$name', '$email', '$role', '$hashed_password', 'upload/av.png', '1')";
+    $query = "INSERT INTO users (names, email, role, password, image, active) VALUES ('$name', '$email', '$role', '$hashed_password', 'assets/img/av.png', '1')";
     $result = mysqli_query($connection, $query);
 
     if ($result) {

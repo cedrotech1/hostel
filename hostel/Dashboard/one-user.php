@@ -73,7 +73,7 @@ if (!isset($idd)) {
                 <div class="card-body">
                   <!-- User details -->
                   <br>
-                  <img src="./assets/img/av.png" class="card-img-top" style='height:auto;width:100%'>
+                  <img src="assets/img/av.png" class="card-img-top" style='height:auto;width:100%'>
                   <div class="card-body">
                     <p class="card-title"><?php echo $row['names']; ?></p>
                     <p class="card-text"><?php echo $row['email']; ?></p>

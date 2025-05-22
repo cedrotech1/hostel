@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../../connection.php';
+include 'connection.php';
 
 // Initialize statistics arrays
 $stats = [
@@ -15,10 +15,17 @@ $stats = [
         'paid_applications' => 0,
         'applications_by_month' => [],
         'applications_by_status' => [],
-        'room_status_distribution' => []
+        'room_status_distribution' => [],
+        'gender_distribution' => [],
+        'applications_by_campus' => [],
+        'applications_by_hostel' => []
     ],
     'campuses' => [],
-    'hostels' => []
+    'hostels' => [],
+    'gender_stats' => [
+        'male' => ['total' => 0, 'pending' => 0, 'paid' => 0],
+        'female' => ['total' => 0, 'pending' => 0, 'paid' => 0]
+    ]
 ];
 
 try {
@@ -123,6 +130,48 @@ try {
         }
     }
 
+    // Get gender distribution
+    $query = "SELECT 
+                s.gender,
+                COUNT(*) as total,
+                SUM(CASE WHEN a.status = 'pending' THEN 1 ELSE 0 END) as pending,
+                SUM(CASE WHEN a.status = 'paid' THEN 1 ELSE 0 END) as paid
+             FROM applications a
+             JOIN students s ON a.regnumber = s.regnumber
+             GROUP BY s.gender";
+    
+    $result = $connection->query($query);
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $gender = strtolower($row['gender']);
+            $stats['gender_stats'][$gender] = [
+                'total' => $row['total'],
+                'pending' => $row['pending'],
+                'paid' => $row['paid']
+            ];
+        }
+    }
+
+    // Get applications by campus
+    $query = "SELECT 
+                c.name as campus_name,
+                COUNT(*) as total,
+                SUM(CASE WHEN a.status = 'pending' THEN 1 ELSE 0 END) as pending,
+                SUM(CASE WHEN a.status = 'paid' THEN 1 ELSE 0 END) as paid
+             FROM applications a
+             JOIN rooms r ON a.room_id = r.id
+             JOIN hostels h ON r.hostel_id = h.id
+             JOIN campuses c ON h.campus_id = c.id
+             GROUP BY c.id, c.name
+             ORDER BY total DESC";
+    
+    $result = $connection->query($query);
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $stats['overall']['applications_by_campus'][] = $row;
+        }
+    }
+
     // Calculate overall available beds
     $stats['overall']['available_beds'] = $stats['overall']['total_beds'] - $stats['overall']['occupied_beds'];
 
@@ -202,6 +251,33 @@ try {
         .trend-down {
             color: #28a745;
         }
+        .search-box {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .search-box input {
+            padding-right: 40px;
+        }
+        .search-box i {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+        }
+        .insight-card {
+            border-left: 4px solid #0d6efd;
+            margin-bottom: 15px;
+        }
+        .insight-card.warning {
+            border-left-color: #ffc107;
+        }
+        .insight-card.danger {
+            border-left-color: #dc3545;
+        }
+        .insight-card.success {
+            border-left-color: #28a745;
+        }
     </style>
 </head>
 <body class="bg-light">
@@ -214,61 +290,62 @@ try {
         </div>
 
         <!-- Overall Statistics Cards -->
-        <div class="row mb-4">
-            <!-- Total Campuses -->
-            <div class="col-md-3 mb-3">
-                <div class="card stat-card bg-primary text-white">
-                    <div class="card-body text-center">
-                        <div class="stat-icon">
-                            <i class="fas fa-building"></i>
-                        </div>
-                        <div class="stat-value"><?php echo number_format($stats['overall']['total_campuses']); ?></div>
-                        <div class="stat-label">Total Campuses</div>
-                    </div>
+        <div class="row mb-4 g-4">
+    <!-- Total Campuses -->
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 h-100 bg-primary text-white rounded-4">
+            <div class="card-body text-center py-4">
+                <div class="mb-3">
+                    <i class="fas fa-building fa-2x"></i>
                 </div>
-            </div>
-
-            <!-- Total Hostels -->
-            <div class="col-md-3 mb-3">
-                <div class="card stat-card bg-success text-white">
-                    <div class="card-body text-center">
-                        <div class="stat-icon">
-                            <i class="fas fa-home"></i>
-                        </div>
-                        <div class="stat-value"><?php echo number_format($stats['overall']['total_hostels']); ?></div>
-                        <div class="stat-label">Total Hostels</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Total Applications -->
-            <div class="col-md-3 mb-3">
-                <div class="card stat-card bg-info text-white">
-                    <div class="card-body text-center">
-                        <div class="stat-icon">
-                            <i class="fas fa-file-alt"></i>
-                        </div>
-                        <div class="stat-value"><?php echo number_format($stats['overall']['total_applications']); ?></div>
-                        <div class="stat-label">Total Applications</div>
-                        <small>Pending: <?php echo number_format($stats['overall']['pending_applications']); ?></small>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Available Beds -->
-            <div class="col-md-3 mb-3">
-                <div class="card stat-card bg-warning text-white">
-                    <div class="card-body text-center">
-                        <div class="stat-icon">
-                            <i class="fas fa-bed"></i>
-                        </div>
-                        <div class="stat-value"><?php echo number_format($stats['overall']['available_beds']); ?></div>
-                        <div class="stat-label">Available Beds</div>
-                        <small>Total: <?php echo number_format($stats['overall']['total_beds']); ?></small>
-                    </div>
-                </div>
+                <h4 class="mb-1 fw-bold"><?php echo number_format($stats['overall']['total_campuses']); ?></h4>
+                <p class="mb-0 text-uppercase small">Total Campuses</p>
             </div>
         </div>
+    </div>
+
+    <!-- Total Hostels -->
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 h-100 bg-success text-white rounded-4">
+            <div class="card-body text-center py-4">
+                <div class="mb-3">
+                    <i class="fas fa-home fa-2x"></i>
+                </div>
+                <h4 class="mb-1 fw-bold"><?php echo number_format($stats['overall']['total_hostels']); ?></h4>
+                <p class="mb-0 text-uppercase small">Total Hostels</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Applications -->
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 h-100 bg-info text-white rounded-4">
+            <div class="card-body text-center py-4">
+                <div class="mb-3">
+                    <i class="fas fa-file-alt fa-2x"></i>
+                </div>
+                <h4 class="mb-1 fw-bold"><?php echo number_format($stats['overall']['total_applications']); ?></h4>
+                <p class="mb-0 text-uppercase small">Total Applications</p>
+                <small class="d-block mt-1">Pending: <?php echo number_format($stats['overall']['pending_applications']); ?></small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Available Beds -->
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 h-100 bg-warning text-white rounded-4">
+            <div class="card-body text-center py-4">
+                <div class="mb-3">
+                    <i class="fas fa-bed fa-2x"></i>
+                </div>
+                <h4 class="mb-1 fw-bold"><?php echo number_format($stats['overall']['available_beds']); ?></h4>
+                <p class="mb-0 text-uppercase small">Available Beds</p>
+                <small class="d-block mt-1">Total: <?php echo number_format($stats['overall']['total_beds']); ?></small>
+            </div>
+        </div>
+    </div>
+</div>
+
 
         <!-- Navigation Tabs -->
         <ul class="nav nav-tabs mb-4" id="statTabs" role="tablist">
@@ -285,6 +362,21 @@ try {
             <li class="nav-item">
                 <a class="nav-link" id="hostels-tab" data-bs-toggle="tab" href="#hostels" role="tab">
                     Hostel Details
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="gender-tab" data-bs-toggle="tab" href="#gender" role="tab">
+                    Gender Statistics
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="search-tab" data-bs-toggle="tab" href="#search" role="tab">
+                    Dynamic Search
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="insights-tab" data-bs-toggle="tab" href="#insights" role="tab">
+                    Insights
                 </a>
             </li>
         </ul>
@@ -447,6 +539,147 @@ try {
                     </div>
                 </div>
             </div>
+
+            <!-- Gender Statistics Tab -->
+            <div class="tab-pane fade" id="gender" role="tabpanel">
+                <div class="row">
+                    <!-- Gender Distribution Chart -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Gender Distribution</h5>
+                                <div class="chart-container">
+                                    <canvas id="genderDistributionChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gender Application Status -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Application Status by Gender</h5>
+                                <div class="chart-container">
+                                    <canvas id="genderApplicationChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gender Statistics Table -->
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Detailed Gender Statistics</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Gender</th>
+                                                <th>Total Applications</th>
+                                                <th>Pending</th>
+                                                <th>Paid</th>
+                                                <th>Success Rate</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($stats['gender_stats'] as $gender => $data): ?>
+                                            <tr>
+                                                <td><?php echo ucfirst($gender); ?></td>
+                                                <td><?php echo number_format($data['total']); ?></td>
+                                                <td><?php echo number_format($data['pending']); ?></td>
+                                                <td><?php echo number_format($data['paid']); ?></td>
+                                                <td>
+                                                    <?php 
+                                                        $success_rate = $data['total'] > 0 ? 
+                                                            ($data['paid'] / $data['total']) * 100 : 0;
+                                                        echo number_format($success_rate, 1) . '%';
+                                                    ?>
+                                                </td>
+                                            </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Search Tab -->
+            <div class="tab-pane fade" id="search" role="tabpanel">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title mb-4">Dynamic Hostel Search</h5>
+                        <div class="search-box">
+                            <input type="text" class="form-control" id="hostelSearch" 
+                                   placeholder="Search for a hostel...">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <div id="searchResults" class="mt-4">
+                            <!-- Results will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Insights Tab -->
+            <div class="tab-pane fade" id="insights" role="tabpanel">
+                <div class="row">
+                    <!-- Key Insights -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Key Insights</h5>
+                                <?php
+                                // Calculate insights
+                                $overall_occupancy = ($stats['overall']['occupied_beds'] / $stats['overall']['total_beds']) * 100;
+                                $application_success_rate = ($stats['overall']['paid_applications'] / $stats['overall']['total_applications']) * 100;
+                                $pending_ratio = ($stats['overall']['pending_applications'] / $stats['overall']['total_applications']) * 100;
+                                ?>
+                                <div class="insight-card p-3 bg-white mb-3 <?php echo $overall_occupancy >= 90 ? 'danger' : ($overall_occupancy >= 70 ? 'warning' : 'success'); ?>">
+                                    <h6>Overall Occupancy Rate</h6>
+                                    <p class="mb-0"><?php echo number_format($overall_occupancy, 1); ?>% of beds are occupied</p>
+                                </div>
+                                <div class="insight-card p-3 bg-white mb-3 <?php echo $application_success_rate >= 70 ? 'success' : 'warning'; ?>">
+                                    <h6>Application Success Rate</h6>
+                                    <p class="mb-0"><?php echo number_format($application_success_rate, 1); ?>% of applications are paid</p>
+                                </div>
+                                <div class="insight-card p-3 bg-white mb-3 <?php echo $pending_ratio >= 30 ? 'danger' : 'success'; ?>">
+                                    <h6>Pending Applications</h6>
+                                    <p class="mb-0"><?php echo number_format($pending_ratio, 1); ?>% of applications are pending</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Campus Performance -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Campus Performance</h5>
+                                <div class="chart-container">
+                                    <canvas id="campusPerformanceChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Application Trends -->
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Application Trends Analysis</h5>
+                                <div class="chart-container">
+                                    <canvas id="applicationTrendsAnalysisChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -553,6 +786,179 @@ try {
                     maintainAspectRatio: false
                 }
             });
+
+            // Gender Distribution Chart
+            new Chart(document.getElementById('genderDistributionChart'), {
+                type: 'pie',
+                data: {
+                    labels: ['Male', 'Female'],
+                    datasets: [{
+                        data: [
+                            <?php echo $stats['gender_stats']['male']['total']; ?>,
+                            <?php echo $stats['gender_stats']['female']['total']; ?>
+                        ],
+                        backgroundColor: ['#0d6efd', '#dc3545']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+
+            // Gender Application Chart
+            new Chart(document.getElementById('genderApplicationChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['Male', 'Female'],
+                    datasets: [{
+                        label: 'Pending',
+                        data: [
+                            <?php echo $stats['gender_stats']['male']['pending']; ?>,
+                            <?php echo $stats['gender_stats']['female']['pending']; ?>
+                        ],
+                        backgroundColor: '#ffc107'
+                    }, {
+                        label: 'Paid',
+                        data: [
+                            <?php echo $stats['gender_stats']['male']['paid']; ?>,
+                            <?php echo $stats['gender_stats']['female']['paid']; ?>
+                        ],
+                        backgroundColor: '#28a745'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Campus Performance Chart
+            new Chart(document.getElementById('campusPerformanceChart'), {
+                type: 'radar',
+                data: {
+                    labels: ['Occupancy Rate', 'Application Success', 'SLEP Ratio'],
+                    datasets: <?php 
+                        $datasets = [];
+                        foreach ($stats['campuses'] as $campus) {
+                            $success_rate = $campus['total_applications'] > 0 ? 
+                                ($campus['paid_applications'] / $campus['total_applications']) * 100 : 0;
+                            $slep_ratio = $campus['total_applications'] > 0 ? 
+                                ($campus['slep_applications'] / $campus['total_applications']) * 100 : 0;
+                            
+                            $datasets[] = [
+                                'label' => $campus['campus_name'],
+                                'data' => [
+                                    $campus['occupancy_rate'],
+                                    $success_rate,
+                                    $slep_ratio
+                                ],
+                                'backgroundColor' => 'rgba(13, 110, 253, 0.2)',
+                                'borderColor' => '#0d6efd',
+                                'pointBackgroundColor' => '#0d6efd'
+                            ];
+                        }
+                        echo json_encode($datasets);
+                    ?>
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+
+            // Application Trends Analysis Chart
+            new Chart(document.getElementById('applicationTrendsAnalysisChart'), {
+                type: 'line',
+                data: {
+                    labels: <?php echo json_encode(array_column(array_reverse($stats['overall']['applications_by_month']), 'month')); ?>,
+                    datasets: [{
+                        label: 'Total Applications',
+                        data: <?php echo json_encode(array_column(array_reverse($stats['overall']['applications_by_month']), 'total')); ?>,
+                        borderColor: '#0d6efd',
+                        tension: 0.1
+                    }, {
+                        label: 'SLEP Applications',
+                        data: <?php echo json_encode(array_column(array_reverse($stats['overall']['applications_by_month']), 'slep')); ?>,
+                        borderColor: '#dc3545',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Dynamic Search Functionality
+            const hostelSearch = document.getElementById('hostelSearch');
+            const searchResults = document.getElementById('searchResults');
+            const hostels = <?php echo json_encode($stats['hostels']); ?>;
+
+            hostelSearch.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                const filteredHostels = hostels.filter(hostel => 
+                    hostel.hostel_name.toLowerCase().includes(searchTerm) ||
+                    hostel.campus_name.toLowerCase().includes(searchTerm)
+                );
+
+                if (filteredHostels.length > 0) {
+                    let html = '<div class="row">';
+                    filteredHostels.forEach(hostel => {
+                        html += `
+                            <div class="col-md-6 mb-4">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">${hostel.hostel_name}</h5>
+                                        <h6 class="card-subtitle mb-3 text-muted">${hostel.campus_name}</h6>
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <p class="mb-1"><strong>Rooms:</strong> ${hostel.total_rooms}</p>
+                                                <p class="mb-1"><strong>Total Beds:</strong> ${hostel.total_beds}</p>
+                                                <p class="mb-1"><strong>Available:</strong> ${hostel.available_beds}</p>
+                                            </div>
+                                            <div class="col-6">
+                                                <p class="mb-1"><strong>Applications:</strong> ${hostel.total_applications}</p>
+                                                <p class="mb-1"><strong>Pending:</strong> ${hostel.pending_applications}</p>
+                                                <p class="mb-1"><strong>Paid:</strong> ${hostel.paid_applications}</p>
+                                            </div>
+                                        </div>
+                                       <div class="progress mt-3" style="height: 25px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.2); border-radius: 8px;">
+                                        <div class="progress-bar ${hostel.occupancy_rate >= 90 ? 'bg-danger' : 
+                                            (hostel.occupancy_rate >= 70 ? 'bg-warning text-dark' : 'bg-success')}" 
+                                            role="progressbar" 
+                                            style="width: ${hostel.occupancy_rate}%; font-weight: 500; font-size: 0.9rem;">
+                                            ${hostel.occupancy_rate.toFixed(1)}% Occupancy
+                                        </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    searchResults.innerHTML = html;
+                } else {
+                    searchResults.innerHTML = '<div class="alert alert-info">No hostels found matching your search.</div>';
+                }
+            });
         });
 
         function refreshStats() {
@@ -560,4 +966,4 @@ try {
         }
     </script>
 </body>
-</html> 
+</html>

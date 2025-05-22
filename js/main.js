@@ -77,5 +77,30 @@
         }
     });
     
+
+    // Tab functionality
+    $(document).ready(function() {
+        // Show the first tab content by default
+        $('.tab-content > div:first').show();
+        
+        // Add click event to tab links
+        $('.tab-link').click(function(e) {
+            e.preventDefault();
+            
+            // Remove active class from all tabs
+            $('.tab-link').removeClass('active');
+            
+            // Add active class to clicked tab
+            $(this).addClass('active');
+            
+            // Hide all tab content
+            $('.tab-pane').hide();
+            
+            // Show the corresponding tab content
+            var target = $(this).attr('href');
+            $(target).fadeIn();
+        });
+    });
+
 })(jQuery);
 

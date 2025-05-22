@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['application_id']) && 
         // Update application with receipt information
         $update_query = "UPDATE applications SET 
                         slep = ?,
-                        status = 'payed'
+                        status = 'paid'
                         WHERE id = ?";
         $update_stmt = $connection->prepare($update_query);
         $update_stmt->bind_param("si", $filename, $application_id);
