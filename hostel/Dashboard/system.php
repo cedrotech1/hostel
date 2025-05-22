@@ -1,53 +1,22 @@
 <?php
 include('connection.php');
 include ('./includes/auth.php');
-checkUserRole(['admin']);
+checkUserRole(['information_modifier']);
 
 
 
 
-
-if (isset($_POST['saveuser'])) {
-  // Retrieve form data and sanitize inputs
-  $email = $connection->real_escape_string($_POST['email']);
-  $app_password = $connection->real_escape_string($_POST['app_password']);
-
-
-  // Check if the email already exists
-  $checkEmailQuery = "SELECT * FROM system_emails WHERE email = '$email'";
-  $result = $connection->query($checkEmailQuery);
-
-  if ($result->num_rows > 0) {
-      // Email already exists
-      echo "<script>alert('email or school exist')</script>";
-  } else {
-      // Email does not exist, proceed with insertion
-      $sql = "INSERT INTO system_emails (email, app_password) VALUES ('$email', '$app_password')";
-
-      if ($connection->query($sql) === TRUE) {
-        echo "<script>window.location.href='system.php'</script>";
-      } else {
-          echo "Error: " . $sql . "<br>" . $connection->error;
-      }
-  }
-}
 
 
 
 if (isset($_POST['update'])) {
   // Retrieve form data and sanitize inputs   
   $status = $connection->real_escape_string($_POST['status']);
-  $exp = $connection->real_escape_string($_POST['exp']);
-  $exp_exam = $connection->real_escape_string($_POST['exp_exam']);
-  $accademic_year = $connection->real_escape_string($_POST['accademic_year']);
-  $semester = $connection->real_escape_string($_POST['semester']);
-  $message = $connection->real_escape_string($_POST['message']);
-
 
 
 
   // Check if the email already exists
-  $Query = "update system set status='$status',exp_date='$exp',exam_validity='$exp_exam',accademic_year='$accademic_year', semester='$semester',allow_message='$message'";
+  $Query = "update system set status='$status'";
 
   $resultx = $connection->query($Query);
 
@@ -173,68 +142,7 @@ if (isset($_POST['update'])) {
                             </div>
                           </div>
                           <br>
-                         <div class="row">
-                          <div class="col-6">
-                          <div class="col-12">
-                            <label for="yourUsername" class="form-label">Student card Validity</label>
-                            <div class="input-group has-validation">
-                              <span class="input-group-text" id="inputGroupPrepend"></span>
-                              <input type="text" name="exp" value='<?php echo $exp ?>' class="form-control" id="yourUsername" required>
-                              <div class="invalid-feedback">Please enter your Validity.</div>
-                            </div>
-                          </div>
-                          <br>
-                         
-                          </div>
-                          <div class="col-6">
-                          <div class="col-12">
-                            <label for="yourUsername" class="form-label">Exam card Validity</label>
-                            <div class="input-group has-validation">
-                              <span class="input-group-text" id="inputGroupPrepend"></span>
-                              <input type="text" name="exp_exam" value='<?php echo $exam_validity ?>' class="form-control" id="yourUsername" required>
-                              <div class="invalid-feedback">Please enter your Validity.</div>
-                            </div>
-                          </div>  
-                          </div>
-                         </div>
-
-                         <div class="row">
-                          <div class="col-md-6">
-                          <div class="col-12">
-                            <label for="yourUsername" class="form-label">Academic year</label>
-                            <div class="input-group has-validation">
-                              <span class="input-group-text" id="inputGroupPrepend"></span>
-                              <input type="text" name="accademic_year" value='<?php echo  $accademic_year;  ?>' class="form-control" id="yourUsername" required>
-                              <div class="invalid-feedback">Please enter your accademic year.</div>
-                            </div>
-                          </div>
-                          </div>
-                          <div class="col-md-6">
-                          <div class="col-12">
-                            <label for="yourUsername" class="form-label">Semester</label>
-                            <div class="input-group has-validation">
-                              <span class="input-group-text" id="inputGroupPrepend"></span>
-                              <input type="text" name="semester" value='<?php echo  $semester;  ?>' class="form-control" id="yourUsername" required>
-                              <div class="invalid-feedback">Please enter your semester.</div>
-                            </div>
-                          </div>
-                          </div><br>
-
-                          <div class="col-md-6"><br>
-                            <div class="form-floating">
-                              <select class="form-control" id="floatingSchool" name="message" aria-label="Select status">
-                             
-                                  <option value="allow">allow</option>
-                                  <option value="close">close</option>
-                                 
-
-                           
-                              </select>
-                              <label for="floatingSchool">allow message currently (<?php echo $allow_message;  ?>)</label>
-                            </div>
-                          </div>
-
-                         </div>
+                      
 
 
 

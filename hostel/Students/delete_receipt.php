@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['application_id'])) {
     
     if (!$application || !$application['slep']) {
         $_SESSION['error_message'] = "Invalid application or no receipt found.";
-        header("Location: select_hostel.php");
+        header("Location: index.php");
         exit();
     }
     
@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['application_id'])) {
     // Update application to remove receipt
     $update_query = "UPDATE applications SET 
                     slep = NULL,
-                    status = 'approved'
+                    status = 'pending'
                     WHERE id = ?";
     $update_stmt = $connection->prepare($update_query);
     $update_stmt->bind_param("i", $application_id);
@@ -45,10 +45,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['application_id'])) {
         $_SESSION['error_message'] = "Error deleting receipt. Please try again.";
     }
     
-    header("Location: select_hostel.php");
+    header("Location: index.php");
     exit();
 } else {
-    header("Location: select_hostel.php");
+    header("Location: index.php");
     exit();
 }
 ?> 

@@ -102,6 +102,7 @@ if (!isset($current_application)) {
     return;
 }
 ?>
+<div class="container">
 <div class="application-details mb-4">
     <div class="card">
         <div class="card-header bg-primary text-white">
@@ -266,3 +267,4 @@ if (!isset($current_application)) {
         </div>
     </div>
 </div> 
+</div>

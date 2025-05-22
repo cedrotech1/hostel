@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['application_id']) && 
     
     if (!$application) {
         $_SESSION['error_message'] = "Invalid application or receipt already uploaded.". $application_id."".$student_regnumber;
-        header("Location: select_hostel.php");
+        header("Location: index.php");
         exit();
     }
     
@@ -32,13 +32,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['application_id']) && 
     
     if (!in_array($file['type'], $allowed_types)) {
         $_SESSION['error_message'] = "Invalid file type. Please upload JPG, PNG, or PDF.";
-        header("Location: select_hostel.php");
+        header("Location: index.php");
         exit();
     }
     
     if ($file['size'] > $max_size) {
         $_SESSION['error_message'] = "File is too large. Maximum size is 2MB.";
-        header("Location: select_hostel.php");
+        header("Location: index.php");
         exit();
     }
     
@@ -73,10 +73,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['application_id']) && 
         $_SESSION['error_message'] = "Error uploading file. Please try again.";
     }
     
-    header("Location: select_hostel.php");
+    header("Location: index.php");
     exit();
 } else {
-    header("Location: select_hostel.php");
+    header("Location: index.php");
     exit();
 }
 ?> 

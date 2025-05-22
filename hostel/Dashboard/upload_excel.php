@@ -42,6 +42,23 @@ foreach ($data['data'] as $row) {
         $yearofstudy = $connection->real_escape_string($row[$yearofstudyIndex]);
         $email       = $connection->real_escape_string($row[$emailIndex]);
         $gender      = $connection->real_escape_string($row[$genderIndex]);
+
+        // gender varidation if M or F OR Male or Female save lower case in db  and if M  make it male and if F make it female
+        if ($gender === 'M') {
+            $gender = 'male';
+        } elseif ($gender === 'F') {
+            $gender = 'female';
+        } elseif ($gender === 'Male') {
+            $gender = 'male';
+        } elseif ($gender === 'Female') {
+            $gender = 'female';
+        }
+        
+        
+
+
+
+
         $nid         = $connection->real_escape_string($row[$nidIndex]);
         $phone       = $connection->real_escape_string($row[$phoneIndex]);
 

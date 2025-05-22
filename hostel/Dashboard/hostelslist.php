@@ -73,7 +73,7 @@ include('connection.php');
                                                 <th><b>Room Code</b></th>
                                                 <th><b>No. of Beds</b></th>
                                                 <th><b>Remaining</b></th>
-                                                <th><b>Status</b></th>
+                                                <!-- <th><b>Status</b></th> -->
                                                 <th><b>Applicants</b></th>
                                             </tr>
                                         </thead>
@@ -90,7 +90,7 @@ include('connection.php');
                                     r.room_code,
                                     r.number_of_beds,
                                     r.remain,
-                                    r.status AS status,
+                                 
                                     GROUP_CONCAT(DISTINCT CONCAT(i.names, ' (', i.regnumber, ', ', i.gender, ', ', i.yearofstudy, ')') SEPARATOR ' | ') AS applicants
                                 FROM 
                                     campuses c
@@ -123,7 +123,7 @@ include('connection.php');
                                                     <td><?php echo htmlspecialchars($row['room_code']); ?></td>
                                                     <td><?php echo htmlspecialchars($row['number_of_beds']); ?></td>
                                                     <td><?php echo htmlspecialchars($row['remain']); ?></td>
-                                                    <td><?php echo htmlspecialchars($row['status']); ?></td>
+                                                    <!-- <td><?php //echo htmlspecialchars($row['status']); ?></td> -->
                                                     <td style="white-space: pre-line;">
                                                         <?php echo nl2br(htmlspecialchars($row['applicants'] ?: 'No Applicants')); ?>
                                                     </td>

@@ -44,34 +44,89 @@ if (count($_SESSION['request_times']) >= $maxRequestsPerMinute) {
         $_SESSION['request_times'][] = $currentTime; // Track the request time
 
         $regnumber = mysqli_real_escape_string($connection, $_POST['regnumber']);
-        $nid = mysqli_real_escape_string($connection, $_POST['nid']);
 
         // Query to check student information
-        $query = "SELECT * FROM info WHERE regnumber = '$regnumber' AND nid = '$nid'";
+        $query = "SELECT * FROM info WHERE regnumber = '$regnumber'";
         $result = mysqli_query($connection, $query);
 
         if (mysqli_num_rows($result) > 0) {
             $student = mysqli_fetch_assoc($result);
             
-            // Store student info in session
-            $_SESSION['student_id'] = $student['id'];
-            $_SESSION['student_regnumber'] = $student['regnumber'];
-            $_SESSION['student_name'] = $student['names'];
-            $_SESSION['student_email'] = $student['email'];
-            $_SESSION['student_campus'] = $student['campus'];
-            $_SESSION['student_college'] = $student['college'];
-            $_SESSION['student_school'] = $student['school'];
-            $_SESSION['student_program'] = $student['program'];
-            $_SESSION['student_year'] = $student['yearofstudy'];
-            $_SESSION['student_gender'] = $student['gender'];
-            $_SESSION['student_status'] = $student['status'];
-
+            // Generate a 6-digit code
+            $verification_code = rand(100000, 999999);
+            $expiry_time = time() + 60; // Code expires in 1 minute
             
-                header("Location: Students/select_hostel.php");
-         
-            exit();
+            // Update the code and expiry time in database
+            $update_query = "UPDATE info SET code = '$verification_code', token = '$expiry_time' WHERE regnumber = '$regnumber'";
+            mysqli_query($connection, $update_query);
+            
+            // Format phone number
+            $phone = $student['phone'];
+            if (!str_starts_with($phone, '+')) {
+                if (str_starts_with($phone, '0')) {
+                    $phone = '+250' . substr($phone, 1);
+                } else {
+                    $error = "Invalid phone number format";
+                }
+            }
+            
+            if (empty($error)) {
+                // Send SMS using Pindo
+                $message = "Your verification code is: $verification_code. Valid for 1 minute.";
+                
+                $curl = curl_init();
+                curl_setopt_array($curl, [
+                    CURLOPT_URL => "https://api.pindo.io/v1/sms/",
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_ENCODING => "",
+                    CURLOPT_MAXREDIRS => 10,
+                    CURLOPT_TIMEOUT => 30,
+                    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                    CURLOPT_CUSTOMREQUEST => "POST",
+                    CURLOPT_POSTFIELDS => json_encode([
+                        "to" => $phone,
+                        "text" => $message,
+                        "sender" => "PindoTest"
+                    ]),
+                    CURLOPT_HTTPHEADER => [
+                        "Authorization: Bearer eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE4MzcxNzUzMTIsImlhdCI6MTc0MjQ4MDkxMiwiaWQiOiJ1c2VyXzAxSlBTWjlDMTZCTUtZQzZLSkdWRkhQOTBNIiwicmV2b2tlZF90b2tlbl9jb3VudCI6MH0.KjgMZ0ht_NhUbil_3kIgHHByJSokufd2IZdC9-PYeXdkJkan4Rv8DMi0jlHXfZnyh_52bOizk9nTR3QOEBU5ZA",
+                        "Content-Type: application/json"
+                    ],
+                ]);
+                
+                $response = curl_exec($curl);
+                $err = curl_error($curl);
+                curl_close($curl);
+                
+                if ($err) {
+                    $error = "Failed to send verification code. Please try again.";
+                    error_log("SMS Error: " . $err);
+                } else {
+                    $responseData = json_decode($response, true);
+                    if (isset($responseData['error'])) {
+                        $error = "Failed to send verification code. Please try again.";
+                        error_log("SMS API Error: " . json_encode($responseData));
+                    } else {
+                        // Store student info in session for verification step
+                        $_SESSION['temp_student_id'] = $student['id'];
+                        $_SESSION['temp_student_regnumber'] = $student['regnumber'];
+                        $_SESSION['temp_student_name'] = $student['names'];
+                        $_SESSION['temp_student_email'] = $student['email'];
+                        $_SESSION['temp_student_campus'] = $student['campus'];
+                        $_SESSION['temp_student_college'] = $student['college'];
+                        $_SESSION['temp_student_school'] = $student['school'];
+                        $_SESSION['temp_student_program'] = $student['program'];
+                        $_SESSION['temp_student_year'] = $student['yearofstudy'];
+                        $_SESSION['temp_student_gender'] = $student['gender'];
+                        $_SESSION['temp_student_status'] = $student['status'];
+                        
+                        header("Location: verify_code.php");
+                        exit();
+                    }
+                }
+            }
         } else {
-            $error = "Invalid registration number or national ID. Please try again.";
+            $error = "Invalid registration number. Please try again.";
         }
     }
 }
@@ -156,10 +211,10 @@ if (!empty($error)) {
                     <h5 class="card-title text-justify pb-0 fs-4">Authentication...</h5>
 
                     Demo Credentials for Testing: <br/>
-                    1. Reg: 20231007, NID: 1002003007  :1 <br/>
-                    2. Reg: 20231016, NID: 1002003016  :1 <br/>
-                    3. Reg: 20231031, NID: 1002003031  :3 <br/>
-                    4. Reg: 20231039, NID: 1002003039  :3
+                    1. Reg: 20231007, Phone: 0784366666  :1 <br/>
+                    2. Reg: 20231016, Phone: 078.......  :1 <br/>
+                    3. Reg: 20231031, Phone: 078.......  :3 <br/>
+                    4. Reg: 20231039, Phone: 078.......  :3
 
                     <?php if (!empty($error)): ?>
                       <div class="alert alert-danger" role="alert">
@@ -174,24 +229,15 @@ if (!empty($error)) {
                   </div>
                   <form class="row g-3 needs-validation" novalidate method="post" action="">
                     <div class="col-12">
-                      <label for="yourRegNumber" class="form-label">REGISTRATION NUMBER.</label>
+                      <label for="yourRegNumber" class="form-label">REGISTRATION NUMBER</label>
                       <div class="input-group has-validation">
-                        <input type="text" name="regnumber" class="form-control" id="yourRegNumber" value="20231007" required>
-                        <div class="invalid-feedback">REGISTRATION NUMBER</div>
-                      </div>
-                    </div>
-
-                    <div class="col-12">
-                      <label for="yourRegNumber" class="form-label">NATIONAL ID NUMBER</label>
-                      <div class="input-group has-validation">
-                        <input type="text" name="nid" class="form-control" id="yourRegNumber" value="1002003007" required>
-                        <div class="invalid-feedback">Please enter your national ID number</div>
+                        <input type="text" name="regnumber" class="form-control" id="yourRegNumber" required>
+                        <div class="invalid-feedback">Please enter your registration number</div>
                       </div>
                     </div>
                     <div class="col-12">
-                      <button class="btn btn-primary w-100" name="submit" type="submit" <?php if ($isSubmitting): ?>
-                          disabled <?php endif; ?>>
-                        <?php echo $isSubmitting ? "Sending Email..." : "Submit"; ?>
+                      <button class="btn btn-primary w-100" name="submit" type="submit" <?php if ($isSubmitting): ?>disabled<?php endif; ?>>
+                        <?php echo $isSubmitting ? "Sending..." : "Send Verification Code"; ?>
                       </button>
                     </div>
                
@@ -201,25 +247,7 @@ if (!empty($error)) {
                   </form>
                 </div>
               </div>
-              <div class="row">
-
-
-             
-                <div class="col-6">
-                <button style="border:2px solid green;background-color:white;width:100%" <?php if($allow_message!='allow'){echo 'disabled';} ?> class="btn btn-default"> 
-                  <a href="message.php" > message</a></button>
-
-
-                </div>
-
-                <div class="col-6">
-                  
-                <button style="border:2px solid gray;background-color:white;width:100%" class="btn btn-default"> 
-                  <a href="rejected.php">  my card</a></button>
-
-
-                </div>
-              </div>
+            
             
    <!-- <p   id="openModal">message us</p> -->
     <br>

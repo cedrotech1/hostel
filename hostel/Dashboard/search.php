@@ -142,6 +142,11 @@ include 'connection.php';
                                 Room Search
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="hostel-members-tab" data-bs-toggle="tab" href="#hostel-members" role="tab">
+                                Hostel Members
+                            </a>
+                        </li>
                     </ul>
 
                     <!-- Tab Content -->
@@ -345,6 +350,58 @@ include 'connection.php';
                                 <!-- Results will be loaded here -->
                             </div>
                         </div>
+
+                        <!-- Hostel Members Tab -->
+                        <div class="tab-pane fade" id="hostel-members" role="tabpanel">
+                            <div class="search-container">
+                                <form id="hostelMembersSearchForm">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="membersCampus">Campus</label>
+                                                <select class="form-control" id="membersCampus" name="campus">
+                                                    <option value="">All Campuses</option>
+                                                    <?php
+                                                    $query = "SELECT DISTINCT campus FROM info ORDER BY campus";
+                                                    $result = $connection->query($query);
+                                                    while ($row = $result->fetch_assoc()) {
+                                                        echo "<option value='" . htmlspecialchars($row['campus']) . "'>" . htmlspecialchars($row['campus']) . "</option>";
+                                                    }
+                                                    ?>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="membersHostel">Hostel</label>
+                                                <select class="form-control" id="membersHostel" name="hostel">
+                                                    <option value="">All Hostels</option>
+                                                    <?php
+                                                    $query = "SELECT DISTINCT name FROM hostels ORDER BY name";
+                                                    $result = $connection->query($query);
+                                                    while ($row = $result->fetch_assoc()) {
+                                                        echo "<option value='" . htmlspecialchars($row['name']) . "'>" . htmlspecialchars($row['name']) . "</option>";
+                                                    }
+                                                    ?>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-3">
+                                        <div class="col-12">
+                                            <button type="submit" class="btn btn-primary">Search</button>
+                                            <button type="button" class="btn btn-success export-btn" id="exportHostelMembersResults">
+                                                <i class="bi bi-file-excel"></i> Export to Excel
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                            <div id="hostelMembersResultsTitle" class="mb-2"></div>
+                            <div id="hostelMembersResults" class="result-container">
+                                <!-- Results will be loaded here -->
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -444,7 +501,7 @@ include 'connection.php';
         handleSearch('#hostelSearchForm', 'hostel');
         handleSearch('#roomSearchForm', 'room');
 
-        // Function to handle Excel export
+        // Unified Excel export function for all panels
         function exportToExcel(type) {
             const data = window[type + 'Data'];
             if (!data || data.length === 0) {
@@ -452,7 +509,6 @@ include 'connection.php';
                 return;
             }
 
-            // Define keys and pretty headers for each type
             let keys = [], headers = [], filename = '';
             switch(type) {
                 case 'student':
@@ -470,40 +526,63 @@ include 'connection.php';
                     headers = ['Room Code', 'Hostel', 'Campus', 'Capacity', 'Available Beds', 'Occupancy Rate', 'Total Applications', 'Pending', 'Paid', 'Occupants', 'Status'];
                     filename = 'room_search_results.xlsx';
                     break;
+                case 'hostelMembers':
+                    keys = ['hostel_name', 'room_code', 'applicant_name', 'regnumber'];
+                    headers = ['Hostel', 'Room', 'Applicant Name', 'Reg Number'];
+                    filename = 'hostel_members_results.xlsx';
+                    break;
             }
 
-            // Map data to only include the keys in the right order
-            const exportData = data.map(row => {
-                let obj = {};
-                keys.forEach(k => obj[k] = row[k]);
-                return obj;
+            // Create worksheet with headers
+            const ws = XLSX.utils.aoa_to_sheet([headers]);
+            
+            // Add data rows
+            const dataRows = data.map(row => {
+                return keys.map(key => row[key] || '');
             });
+            
+            // Add data starting from row 1 (after headers)
+            XLSX.utils.sheet_add_aoa(ws, dataRows, { origin: 1 });
 
-            // Create worksheet with keys as headers (SheetJS will add one header row)
-            const ws = XLSX.utils.json_to_sheet(exportData, { header: keys, skipHeader: true });
-
-            // Overwrite the first row with pretty headers
-            headers.forEach((h, idx) => {
-                const cell = XLSX.utils.encode_cell({ r: 0, c: idx });
-                ws[cell] = ws[cell] || {};
-                ws[cell].v = h;
-            });
-
-            // Create workbook and export
+            // Create workbook and add worksheet
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Results");
+            
+            // Write file
             XLSX.writeFile(wb, filename);
         }
 
-        // Initialize export handlers
-        $('#exportStudentResults').on('click', function () {
-            exportToExcel('student');
-        });
-        $('#exportHostelResults').on('click', function () {
-            exportToExcel('hostel');
-        });
-        $('#exportRoomResults').on('click', function () {
-            exportToExcel('room');
+        // Bind export buttons to unified export function
+        $('#exportStudentResults').on('click', function() { exportToExcel('student'); });
+        $('#exportHostelResults').on('click', function() { exportToExcel('hostel'); });
+        $('#exportRoomResults').on('click', function() { exportToExcel('room'); });
+        $('#exportHostelMembersResults').on('click', function() { exportToExcel('hostelMembers'); });
+
+        // Hostel Members search handler
+        $('#hostelMembersSearchForm').on('submit', function(e) {
+            e.preventDefault();
+            $('#hostelMembersResults').html('<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+            $('#hostelMembersResultsTitle').html('');
+            var formData = $(this).serialize();
+            $.ajax({
+                url: 'search_hostel_members.php',
+                type: 'POST',
+                data: formData,
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        const summary = buildSearchSummary('#hostelMembersSearchForm');
+                        $('#hostelMembersResultsTitle').html('<h5>' + summary + '</h5>');
+                        $('#hostelMembersResults').html(response.html);
+                        window['hostelMembersData'] = response.data;
+                    } else {
+                        $('#hostelMembersResults').html('<div class="alert alert-danger">Error: ' + (response.error || 'An unknown error occurred') + '</div>');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $('#hostelMembersResults').html('<div class="alert alert-danger">Error: ' + error + '</div>');
+                }
+            });
         });
     });
 </script>

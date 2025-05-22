@@ -8,13 +8,13 @@ if(!isset($_SESSION['loggedin'])){
 }
 
 include ('./includes/auth.php');
-checkUserRole(['admin']);
+checkUserRole(['information_modifier']);
 
 if (isset($_POST['export'])) {
     $host = "localhost";
     $username = "root";
     $password = ""; // Update if necessary
-    $database = "ur-student-card";
+    $database = "hostel";
     $port = 3306;
     $backupFile = __DIR__ . "/backup_" . date("Y-m-d_H-i-s") . ".sql";
     $mysqldumpPath = "C:\\HUYE APP\\mysql\\bin\\mysqldump"; // Adjust path

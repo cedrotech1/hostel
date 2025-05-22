@@ -31,22 +31,23 @@ $stats = [
 try {
     // Get campus-level statistics
     $query = "SELECT 
-                c.id as campus_id,
-                c.name as campus_name,
-                COUNT(DISTINCT h.id) as total_hostels,
-                COUNT(DISTINCT r.id) as total_rooms,
-                SUM(r.number_of_beds) as total_beds,
-                SUM(r.remain) as available_beds,
-                COUNT(DISTINCT a.id) as total_applications,
-                SUM(CASE WHEN a.status = 'pending' THEN 1 ELSE 0 END) as pending_applications,
-                SUM(CASE WHEN a.status = 'paid' THEN 1 ELSE 0 END) as paid_applications,
-                SUM(CASE WHEN a.slep = 1 THEN 1 ELSE 0 END) as slep_applications
-             FROM campuses c
-             LEFT JOIN hostels h ON h.campus_id = c.id
-             LEFT JOIN rooms r ON r.hostel_id = h.id
-             LEFT JOIN applications a ON a.room_id = r.id
-             GROUP BY c.id, c.name
-             ORDER BY c.name";
+                c.id AS campus_id,
+                c.name AS campus_name,
+                COUNT(DISTINCT h.id) AS total_hostels,
+                COUNT(DISTINCT r.id) AS total_rooms,
+                SUM(r.number_of_beds) AS total_beds,
+                SUM(r.number_of_beds) - COUNT(a.id) AS available_beds,
+                COUNT(a.id) AS total_applications,
+                SUM(CASE WHEN a.status = 'pending' THEN 1 ELSE 0 END) AS pending_applications,
+                SUM(CASE WHEN a.status = 'paid' THEN 1 ELSE 0 END) AS paid_applications,
+                SUM(CASE WHEN a.slep = 1 THEN 1 ELSE 0 END) AS slep_applications
+            FROM campuses c
+            LEFT JOIN hostels h ON h.campus_id = c.id
+            LEFT JOIN rooms r ON r.hostel_id = h.id
+            LEFT JOIN applications a ON a.room_id = r.id
+            GROUP BY c.id, c.name
+            ORDER BY c.name;
+            ";
 
     $result = $connection->query($query);
     if ($result) {
@@ -70,22 +71,23 @@ try {
 
     // Get hostel-level statistics
     $query = "SELECT 
-                h.id as hostel_id,
-                h.name as hostel_name,
-                c.name as campus_name,
-                COUNT(DISTINCT r.id) as total_rooms,
-                SUM(r.number_of_beds) as total_beds,
-                SUM(r.remain) as available_beds,
-                COUNT(DISTINCT a.id) as total_applications,
-                SUM(CASE WHEN a.status = 'pending' THEN 1 ELSE 0 END) as pending_applications,
-                SUM(CASE WHEN a.status = 'paid' THEN 1 ELSE 0 END) as paid_applications,
-                SUM(CASE WHEN a.slep = 1 THEN 1 ELSE 0 END) as slep_applications
-             FROM hostels h
-             LEFT JOIN campuses c ON h.campus_id = c.id
-             LEFT JOIN rooms r ON r.hostel_id = h.id
-             LEFT JOIN applications a ON a.room_id = r.id
-             GROUP BY h.id, h.name, c.name
-             ORDER BY c.name, h.name";
+    h.id AS hostel_id,
+    h.name AS hostel_name,
+    c.name AS campus_name,
+    COUNT(DISTINCT r.id) AS total_rooms,
+    SUM(r.number_of_beds) AS total_beds,
+    SUM(r.number_of_beds) - COUNT(a.id) AS available_beds,
+    COUNT(a.id) AS total_applications,
+    SUM(CASE WHEN a.status = 'pending' THEN 1 ELSE 0 END) AS pending_applications,
+    SUM(CASE WHEN a.status = 'paid' THEN 1 ELSE 0 END) AS paid_applications,
+    SUM(CASE WHEN a.slep = 1 THEN 1 ELSE 0 END) AS slep_applications
+FROM hostels h
+LEFT JOIN campuses c ON h.campus_id = c.id
+LEFT JOIN rooms r ON r.hostel_id = h.id
+LEFT JOIN applications a ON a.room_id = r.id
+GROUP BY h.id, h.name, c.name
+ORDER BY c.name, h.name;
+";
 
     $result = $connection->query($query);
     if ($result) {
@@ -214,7 +216,7 @@ try {
     <link href="assets/vendor/quill/quill.bubble.css" rel="stylesheet">
     <link href="assets/vendor/remixicon/remixicon.css" rel="stylesheet">
     <link href="assets/vendor/simple-datatables/style.css" rel="stylesheet">
-
+<title>Hostel Statistics Dashboard</title>
     <!-- Template Main CSS File -->
     <link href="assets/css/style.css" rel="stylesheet">
 <!-- 
@@ -554,11 +556,6 @@ try {
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" id="gender-tab" data-bs-toggle="tab" href="#gender" role="tab">
-                                    Gender Statistics
-                                </a>
-                            </li>
-                            <li class="nav-item">
                                 <a class="nav-link" id="search-tab" data-bs-toggle="tab" href="#search" role="tab">
                                     Dynamic Search
                                 </a>
@@ -582,18 +579,6 @@ try {
                                                 <h5 class="card-title">Application Trends</h5>
                                                 <div class="chart-container">
                                                     <canvas id="applicationTrendsChart"></canvas>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Room Status Distribution -->
-                                    <div class="col-md-6 mb-4">
-                                        <div class="card">
-                                            <div class="card-body">
-                                                <h5 class="card-title">Room Status Distribution</h5>
-                                                <div class="chart-container">
-                                                    <canvas id="roomStatusChart"></canvas>
                                                 </div>
                                             </div>
                                         </div>
@@ -644,7 +629,7 @@ try {
                                                         <th>Applications</th>
                                                         <th>Pending</th>
                                                         <th>Paid</th>
-                                                        <th>SLEP</th>
+                                                        <!-- <th>SLEP</th> -->
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -672,7 +657,7 @@ try {
                                                             <td><?php echo number_format($campus['pending_applications']); ?>
                                                             </td>
                                                             <td><?php echo number_format($campus['paid_applications']); ?></td>
-                                                            <td><?php echo number_format($campus['slep_applications']); ?></td>
+                                                            <!-- <td><?php //echo number_format($campus['slep_applications']); ?></td> -->
                                                         </tr>
                                                     <?php endforeach; ?>
                                                 </tbody>
@@ -701,7 +686,7 @@ try {
                                                         <th>Applications</th>
                                                         <th>Pending</th>
                                                         <th>Paid</th>
-                                                        <th>SLEP</th>
+                                                        <!-- <th>SLEP</th> -->
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -725,79 +710,11 @@ try {
                                                             <td><?php echo number_format($hostel['pending_applications']); ?>
                                                             </td>
                                                             <td><?php echo number_format($hostel['paid_applications']); ?></td>
-                                                            <td><?php echo number_format($hostel['slep_applications']); ?></td>
+                                                            <!-- <td><?php //echo number_format($hostel['slep_applications']); ?></td> -->
                                                         </tr>
                                                     <?php endforeach; ?>
                                                 </tbody>
                                             </table>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Gender Statistics Tab -->
-                            <div class="tab-pane fade" id="gender" role="tabpanel">
-                                <div class="row">
-                                    <!-- Gender Distribution Chart -->
-                                    <div class="col-md-6 mb-4">
-                                        <div class="card">
-                                            <div class="card-body">
-                                                <h5 class="card-title">Gender Distribution</h5>
-                                                <div class="chart-container">
-                                                    <canvas id="genderDistributionChart"></canvas>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Gender Application Status -->
-                                    <div class="col-md-6 mb-4">
-                                        <div class="card">
-                                            <div class="card-body">
-                                                <h5 class="card-title">Application Status by Gender</h5>
-                                                <div class="chart-container">
-                                                    <canvas id="genderApplicationChart"></canvas>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Gender Statistics Table -->
-                                    <div class="col-12">
-                                        <div class="card">
-                                            <div class="card-body">
-                                                <h5 class="card-title">Detailed Gender Statistics</h5>
-                                                <div class="table-responsive">
-                                                    <table class="table table-hover">
-                                                        <thead>
-                                                            <tr>
-                                                                <th>Gender</th>
-                                                                <th>Total Applications</th>
-                                                                <th>Pending</th>
-                                                                <th>Paid</th>
-                                                                <th>Success Rate</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            <?php foreach ($stats['gender_stats'] as $gender => $data): ?>
-                                                                <tr>
-                                                                    <td><?php echo ucfirst($gender); ?></td>
-                                                                    <td><?php echo number_format($data['total']); ?></td>
-                                                                    <td><?php echo number_format($data['pending']); ?></td>
-                                                                    <td><?php echo number_format($data['paid']); ?></td>
-                                                                    <td>
-                                                                        <?php
-                                                                        $success_rate = $data['total'] > 0 ?
-                                                                            ($data['paid'] / $data['total']) * 100 : 0;
-                                                                        echo number_format($success_rate, 1) . '%';
-                                                                        ?>
-                                                                    </td>
-                                                                </tr>
-                                                            <?php endforeach; ?>
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -858,18 +775,6 @@ try {
                                             </div>
                                         </div>
                                     </div>
-
-                                    <!-- Gender Distribution -->
-                                    <div class="col-md-6 mb-4">
-                                        <div class="card">
-                                            <div class="card-body">
-                                                <h5 class="card-title">Gender Distribution</h5>
-                                                <div class="chart-container">
-                                                    <canvas id="genderDistributionChart"></canvas>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -909,22 +814,6 @@ try {
                                         beginAtZero: true
                                     }
                                 }
-                            }
-                        });
-
-                        // Room Status Chart
-                        new Chart(document.getElementById('roomStatusChart'), {
-                            type: 'pie',
-                            data: {
-                                labels: <?php echo json_encode(array_column($stats['overall']['room_status_distribution'], 'status')); ?>,
-                                datasets: [{
-                                    data: <?php echo json_encode(array_column($stats['overall']['room_status_distribution'], 'count')); ?>,
-                                    backgroundColor: ['#28a745', '#dc3545', '#ffc107']
-                                }]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false
                             }
                         });
 
@@ -997,57 +886,6 @@ try {
                             options: {
                                 responsive: true,
                                 maintainAspectRatio: false
-                            }
-                        });
-
-                        // Gender Distribution Chart
-                        new Chart(document.getElementById('genderDistributionChart'), {
-                            type: 'pie',
-                            data: {
-                                labels: ['Male', 'Female'],
-                                datasets: [{
-                                    data: [
-                                        <?php echo $stats['gender_stats']['male']['total']; ?>,
-                                        <?php echo $stats['gender_stats']['female']['total']; ?>
-                                    ],
-                                    backgroundColor: ['#0d6efd', '#dc3545']
-                                }]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false
-                            }
-                        });
-
-                        // Gender Application Chart
-                        new Chart(document.getElementById('genderApplicationChart'), {
-                            type: 'bar',
-                            data: {
-                                labels: ['Male', 'Female'],
-                                datasets: [{
-                                    label: 'Pending',
-                                    data: [
-                                        <?php echo $stats['gender_stats']['male']['pending']; ?>,
-                                        <?php echo $stats['gender_stats']['female']['pending']; ?>
-                                    ],
-                                    backgroundColor: '#ffc107'
-                                }, {
-                                    label: 'Paid',
-                                    data: [
-                                        <?php echo $stats['gender_stats']['male']['paid']; ?>,
-                                        <?php echo $stats['gender_stats']['female']['paid']; ?>
-                                    ],
-                                    backgroundColor: '#28a745'
-                                }]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                scales: {
-                                    y: {
-                                        beginAtZero: true
-                                    }
-                                }
                             }
                         });
 
@@ -1169,7 +1007,8 @@ try {
                                 html += '</div>';
                                 searchResults.innerHTML = html;
                             } else {
-                                searchResults.innerHTML = '<div class="alert alert-info">No hostels found matching your search.</div>';
+                                searchResults.innerHTML =
+                                 '<div class="alert alert-info">No hostels found matching your search.</div>';
                             }
                         });
                     });
@@ -1194,7 +1033,7 @@ try {
                 <script src="assets/vendor/simple-datatables/simple-datatables.js"></script>
                 <script src="assets/vendor/tinymce/tinymce.min.js"></script>
                 <script src="assets/vendor/php-email-form/validate.js"></script>
-
+                <script src="assets/js/main.js"></script>
                 <!-- Template Main JS File -->
                 <script>
                     // Initialize Bootstrap tabs
@@ -1205,12 +1044,9 @@ try {
                             new Promise(resolve => {
                                 const charts = [
                                     'applicationTrendsChart',
-                                    'roomStatusChart',
                                     'campusDistributionChart',
                                     'applicationStatusChart',
                                     'applicationStatusDistributionChart',
-                                    'genderDistributionChart',
-                                    'genderApplicationChart',
                                     'campusPerformanceChart',
                                     'applicationTrendsAnalysisChart'
                                 ];

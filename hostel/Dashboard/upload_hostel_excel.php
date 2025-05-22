@@ -24,6 +24,20 @@ foreach ($rows as $row) {
         continue; // Skip invalid rows
     }
 
+    // check if campus name exist in table info column name campus if not not upload hostel
+    $stmt = $connection->prepare("SELECT id FROM info WHERE campus = ?");
+    $stmt->bind_param("s", $campus_name);
+    $stmt->execute();
+    $stmt->store_result();
+
+    if ($stmt->num_rows === 0) {
+        continue; // Skip if campus name does not exist
+        echo json_encode(['message' => 'Campus name does not exist']);
+        exit;
+    }
+
+
+
     // 1. Get or insert campus
     $stmt = $connection->prepare("SELECT id FROM campuses WHERE name = ?");
     $stmt->bind_param("s", $campus_name);

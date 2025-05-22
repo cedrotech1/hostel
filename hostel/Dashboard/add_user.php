@@ -1,7 +1,7 @@
 <?php
 include('connection.php');
-include ('./includes/auth.php');
-checkUserRole(['admin']);
+include('./includes/auth.php');
+checkUserRole(['information_modifier']);
 
 require_once '../../loadEnv.php';
 
@@ -204,12 +204,7 @@ include("../email_functions.php");
               while ($row = mysqli_fetch_assoc($result)) {
                 // Get privileges for the current user
                 $userId = $row['id'];
-                $privileges_query = "SELECT title FROM privilages WHERE uid = $userId";
-                $privileges_result = mysqli_query($connection, $privileges_query);
-                $privileges = [];
-                while ($privilege_row = mysqli_fetch_assoc($privileges_result)) {
-                  $privileges[] = $privilege_row['title'];
-                }
+                
                 ?>
                 <div class="col-xxl-3 col-md-4">
                   <!-- User Card -->
@@ -232,38 +227,32 @@ include("../email_functions.php");
  
     font-family: Arial, sans-serif;
 ">
-    <!-- Display user's name -->
-    <p style="font-size: 18px; font-weight: bold; margin-bottom: 8px; color: #333;">
-        Names: <?php echo $row['names']; ?>
-    </p>
-    
-    <!-- Display user's email -->
-    <p style="font-size: 16px; margin-bottom: 8px; color: #555;">
-        Email: <?php echo $row['email']; ?>
-    </p>
-    
-    <!-- Display user's role -->
-    <p style="font-size: 16px; color: #555;">
-        Role: <?php echo $row['role']; ?>
-    </p>
-    <p style="font-size: 16px; color: #555;">
-        Status: <?php if($row['active']){
-          echo "active";
-        }else{
-          echo "inactive";
-        }; ?>
-    </p>
-</div>
+                          <!-- Display user's name -->
+                          <p style="font-size: 18px; font-weight: bold; margin-bottom: 8px; color: #333;">
+                            Names: <?php echo $row['names']; ?>
+                          </p>
 
-                       
-                        <!-- Display user's privileges -->
-                        <div class="ps-1" style="margin-top: 0.5rem;">
-                          <?php
-                          foreach ($privileges as $privilege) {
-                           // echo '<span class="badge bg-light text-dark me-1">' . $privilege . '</span>';
-                          }
-                          ?>
+                          <!-- Display user's email -->
+                          <p style="font-size: 16px; margin-bottom: 8px; color: #555;">
+                            Email: <?php echo $row['email']; ?>
+                          </p>
+
+                          <!-- Display user's role -->
+                          <p style="font-size: 16px; color: #555;">
+                            Role: <?php echo $row['role']; ?>
+                          </p>
+                          <p style="font-size: 16px; color: #555;">
+                            Status: <?php if ($row['active']) {
+                              echo "active";
+                            } else {
+                              echo "inactive";
+                            }
+                            ; ?>
+                          </p>
                         </div>
+
+
+                   
                         <div class="ps-1">
                           <div class="row" style='background-color:#f6f9ff;margin-top:0.2cm'>
                             <!-- Button to delete the user -->
@@ -386,7 +375,7 @@ if (isset($_POST['saveuser'])) {
 
     if ($result) {
 
-      sendWelcomeEmail($email, $name,$password);
+      sendWelcomeEmail($email, $name, $password);
       echo "<script>alert('User added successfully.')</script>";
       echo "<script>window.location.href='add_user.php'</script>";
     } else {

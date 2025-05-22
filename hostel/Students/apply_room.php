@@ -105,14 +105,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['room_id']) && isset($
         $connection->commit();
         
         $_SESSION['success_message'] = "Your application has been submitted successfully!";
-        header("Location: select_hostel.php");
+        header("Location: index.php");
         exit();
 
     } catch (Exception $e) {
         // Rollback transaction on error
         $connection->rollback();
         $_SESSION['error_message'] = $e->getMessage();
-        header("Location: select_hostel.php");
+        header("Location: index.php");
         exit();
     }
 } else {

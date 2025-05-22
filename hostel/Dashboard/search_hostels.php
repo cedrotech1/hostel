@@ -18,7 +18,7 @@ try {
                 c.name as campus_name,
                 COUNT(DISTINCT r.id) as total_rooms,
                 SUM(r.number_of_beds) as total_beds,
-                SUM(r.remain) as available_beds,
+                SUM(r.number_of_beds) - COUNT(a.id) as available_beds,
                 COUNT(DISTINCT a.id) as total_applications,
                 SUM(CASE WHEN a.status = 'pending' THEN 1 ELSE 0 END) as pending_applications,
                 SUM(CASE WHEN a.status = 'paid' THEN 1 ELSE 0 END) as paid_applications,

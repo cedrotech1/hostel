@@ -26,9 +26,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $truncate = "TRUNCATE TABLE info";
             mysqli_query($connection, $truncate);
 
-            // Truncate table 'student_ids'
-            $truncate2 = "TRUNCATE TABLE student_ids";
+            // Truncate table 'applications'
+            $truncate2 = "TRUNCATE TABLE applications";
             mysqli_query($connection, $truncate2);
+
+            // Truncate table 'rooms'
+            $truncate3 = "TRUNCATE TABLE rooms";
+            mysqli_query($connection, $truncate3);
+
+            // Truncate table 'hostels'
+            $truncate4 = "TRUNCATE TABLE hostels";
+            mysqli_query($connection, $truncate4);
+
+            // Truncate table 'campuses'
+            $truncate5 = "TRUNCATE TABLE campuses";
+            mysqli_query($connection, $truncate5);
 
             echo "<script>alert('Done')</script>";
         } else {

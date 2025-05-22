@@ -301,18 +301,29 @@ function renderHostelCard($hostel, $connection) {
         </div>
         <div class="card-body">
             <!-- Hostel Statistics -->
-            <div class="hostel-stats">
-                <div class="stat-item">
-                    <i class="bi bi-door-open text-primary"></i>
-                    <div class="stat-value"><?php echo $stats['available_rooms']; ?>/<?php echo $stats['total_rooms']; ?></div>
-                    <div class="stat-label">Rooms</div>
-                </div>
-                <div class="stat-item">
-                    <i class="bi bi-people text-success"></i>
-                    <div class="stat-value"><?php echo $stats['available_beds']; ?>/<?php echo $stats['total_beds']; ?></div>
-                    <div class="stat-label">Beds</div>
-                </div>
-            </div>
+            <div class="hostel-stats row g-3">
+    <div class="col-6 stat-item text-center">
+        <i class="bi bi-door-open text-primary fs-3"></i>
+        <div class="stat-value fw-bold"><?php echo $stats['available_rooms']; ?>/<?php echo $stats['total_rooms']; ?></div>
+        <div class="stat-label text-muted">Rooms</div>
+    </div>
+
+    <div class="col-6 stat-item text-center">
+        <i class="bi bi-people text-success fs-3"></i>
+        <div class="stat-value fw-bold"><?php echo $stats['available_beds']; ?>/<?php echo $stats['total_beds']; ?></div>
+        <div class="stat-label text-muted">Beds</div>
+    </div>
+
+    <!-- Add more stat items here if needed -->
+    <!-- Example:
+    <div class="col-6 stat-item text-center">
+        <i class="bi bi-journal-check text-info fs-3"></i>
+        <div class="stat-value fw-bold">2</div>
+        <div class="stat-label text-muted">Applications</div>
+    </div>
+    -->
+</div>
+
 
             <!-- Hostel Attributes -->
             <div class="hostel-attributes">
